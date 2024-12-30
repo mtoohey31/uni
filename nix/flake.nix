@@ -9,11 +9,19 @@
   outputs = { self, nixpkgs, flake-utils }: {
     overlays.default = final: _: {
       uni = final.callPackage
-        ({ buildGoModule }: buildGoModule {
+        ({ buildGoModule, python3Packages }: buildGoModule {
           pname = "uni";
           version = "0.1.0";
           src = builtins.path { path = ./..; name = "uni-src"; };
           vendorHash = null;
+          nativeBuildInputs = [ python3Packages.cram ];
+          checkPhase = ''
+            runHook preCheck
+
+            UNI=$GOPATH/bin/uni cram test.t
+
+            runHook postCheck
+          '';
         })
         { };
     };
@@ -31,6 +39,9 @@
       devShells.default = mkShell {
         inputsFrom = [ uni ];
         packages = [ gopls ];
+        shellHook = ''
+          export UNI=$PWD/uni
+        '';
       };
     });
 }
